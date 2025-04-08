@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เว็บไซต์หนัง</title>
+    <link rel="stylesheet" href="style.css">
+    <script>
+        const translations = {
+            "th": {
+                "home": "🏠 หน้าหลัก",
+                "movies": "🎞 หนัง",
+                "login": "🔐 เข้าสู่ระบบ",
+                "contact": "ติดต่อ",
+                "booking": "🎟 จองตั๋วหนัง",
+                "welcome": "🎬 ยินดีต้อนรับสู่เว็บไซต์หนัง",
+                "intro": "แนะนำหนังใหม่และหนังยอดนิยมที่คุณไม่ควรพลาด!",
+                "movie_list": "🎥 รายการหนัง",
+                "login_prompt": "🔐 เข้าสู่ระบบ",
+                "user_placeholder": "กรอกชื่อผู้ใช้",
+                "password_placeholder": "กรอกรหัสผ่าน",
+                "login_button": "Login",
+                "login_success": "เข้าสู่ระบบสำเร็จ ",
+                "contact_us": "📞 ติดต่อเรา",
+                "phone": "☎️ โทร: 012-345-6789",
+                "update": "อัปเดตล่าสุด",
+                "select_movie": "เลือกหนัง",
+                "select_seat": "เลือกที่นั่ง",
+                "book_now": "จองตอนนี้",
+                "already_booked": "ที่นั่งนี้ถูกจองไปแล้ว!",
+                "booking_confirmed": "การจองสำเร็จ!",
+                "total_price": "ยอดรวม",
+                "selected_seats": "ที่นั่งที่เลือก",
+                "select_seat": "โปรดเลือกที่นั่งก่อน!",
+                "resetsystem": "รีเช็ตระบบ",
+                "cusbookinghistory": "ประวัติการจองลูกค้า",
+                "logout":"🚪 ออกจากระบบ",
+                "history":"ประวัติการจอง",
+                "pricemanage":"จัดการราคาตั๋ว",
+                "price_management": "จัดการราคาตั๋ว",
+                "regular_price": "ราคาที่นั่งปกติ:",
+                "premium_price": "ราคาที่นั่งพรีเมียม:",
+                "update_prices": "อัปเดตราคา",
+                "back_to_admin": "กลับไปหน้า Admin"
+                
+            },
+            "en": {
+                "home": "🏠 Home",
+                "movies": "🎞 Movies",
+                "login": "🔐 Login",
+                "contact": "Contact",
+                "booking": "🎟 Book Tickets",
+                "welcome": "🎬 Welcome to Movie Website",
+                "intro": "Discover new and popular movies you shouldn't miss!",
+                "movie_list": "🎥 Movie List",
+                "login_prompt": "🔐 Login",
+                "user_placeholder": "Enter username",
+                "password_placeholder": "Enter password",
+                "login_button": "Login",
+                "login_success": "Login success ",
+                "contact_us": "📞 Contact Us",
+                "phone": "☎️ Phone: 012-345-6789",
+                "update": "Last Updated",
+                "select_movie": "Select Movie",
+                "select_seat": "Select Seat",
+                "book_now": "Book Now",
+                "already_booked": "This seat is already booked!",
+                "booking_confirmed": "Booking Confirmed!",
+                "total_price": "Total Price",
+                "selected_seats": "Selected Seats",
+                "select_seat": "Please select a seat first!",
+                "resetsystem": "Reseting System",
+                "cusbookinghistory": "Customer Booking History",
+                "logout":"🚪 Logout",
+                "history":"Booking History",
+                "pricemanage":"Price Management",
+                "price_management": "Ticket Price Management",
+                "regular_price": "Regular Seat Price:",
+                "premium_price": "Premium Seat Price:",
+                "update_prices": "Update Prices",
+                "back_to_admin": "Back to Admin"
+            }
+        };
+
+        function showPage(pageId) {
+            let pages = document.querySelectorAll('.page');
+            pages.forEach(page => page.style.display = 'none');
+            document.getElementById(pageId).style.display = 'block';
+
+            // หากเปิดหน้า "ประวัติการจอง" และผู้ใช้ล็อกอินอยู่ ให้อัปเดตประวัติ
+            if (pageId === 'history' && isLoggedIn) {
+                updateBookingHistory();
+            }
+
+            // อัปเดตปุ่มเมื่อเปลี่ยนหน้า
+            updateAuthButton();
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            showPage('home');
+        });
+
+        function changeLanguage(lang) {
+    document.documentElement.lang = lang;
+    document.querySelectorAll("[data-translate]").forEach(element => {
+        let key = element.getAttribute("data-translate");
+        if (translations[lang][key]) {
+            // Special handling for login/logout button
+            if (key === "login") {
+                if (isLoggedIn) {
+                    element.innerHTML = translations[lang]["logout"];
+                } else {
+                    element.innerHTML = translations[lang]["login"];
+                }
+            } else {
+                element.innerHTML = translations[lang][key];
+            }
+        }
+    });
+    document.getElementById("password").placeholder = translations[lang]["password_placeholder"];
+    document.getElementById("user").placeholder = translations[lang]["user_placeholder"];
+    
+    // Force update the auth button state
+    updateAuthButton();
+}
+       
+
+
+
+        function selectMovie() {
+            const movieSelect = document.getElementById("movie");
+            const selectedMovie = movieSelect.value;
+            const posterImg = document.getElementById("poster-img");
+            const selectedOption = movieSelect.options[movieSelect.selectedIndex];
+            const posterSrc = selectedOption.getAttribute("data-poster");
+
+            if (selectedMovie !== "none") {
+                posterImg.src = posterSrc;
+                posterImg.style.display = "block";
+            } else {
+                posterImg.style.display = "none";
+            }
+
+            // ซ่อน booking-container ทุกอันก่อนแสดงอันที่ถูกเลือก
+            document.querySelectorAll(".booking-container").forEach(container => {
+                container.style.display = "none";
+            });
+
+            if (selectedMovie !== "none") {
+                document.getElementById(selectedMovie).style.display = "block";
+                generateSeats(selectedMovie); // 🔹 สร้างที่นั่งให้หนังที่เลือก
+            }
+        }
+
+
+        const usersDatabase = {
+            "ball": "1234", // ผู้ใช้ทั่วไป
+            "tang": "888",    // ผู้ใช้ทั่วไป
+            "admin": "admin123"      // Admin
+        };
+
+        let isLoggedIn = false; // กำหนดสถานะล็อกอิน
+
+
+        function login() {
+            const username = document.getElementById("user").value.trim();
+            const password = document.getElementById("password").value.trim();
+            const lang = document.documentElement.lang;
+
+            if (!username || !password) {
+                alert(translations[lang]["user_placeholder"]);
+                return;
+            }
+
+            if (usersDatabase[username] && usersDatabase[username] === password) {
+                alert(translations[lang]["login_success"] + username + "!");
+                isLoggedIn = true;
+                updateAuthButton(); // อัปเดตปุ่มล็อกอินและประวัติการจอง
+                updateBookingHistory(); // อัปเดตประวัติการจอง
+
+                // เปลี่ยนหน้าไปยังหน้า Home
+                showPage('home');
+            } else {
+                alert("❌ ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง!");
+            }
+        }
+
+        function logout() {
+    const lang = document.documentElement.lang;
+    alert(translations[lang]["logout"] + " " + translations[lang]["logout_success"]);
+    isLoggedIn = false;
+    selectedSeats = [];
+    
+    // Clear history display
+    let historyList = document.getElementById("history-list");
+    historyList.innerHTML = `<p data-translate="no_history">${translations[lang]["no_history"]}</p>`;
+    
+    // Update UI
+    updateAuthButton();
+    showPage('login');
+}
+
+
+        function updateAuthButton() {
+    const authLink = document.querySelector('nav ul li a[data-translate="login"]');
+    const historyLink = document.querySelector('nav ul li a[data-translate="history"]');
+    const adminLink = document.getElementById("admin-link");
+    const lang = document.documentElement.lang;
+
+    if (authLink) {
+        if (isLoggedIn) {
+            authLink.innerHTML = translations[lang]["logout"];
+            authLink.setAttribute("onclick", "logout()");
+            
+            // Show/hide history link based on admin status
+            if (historyLink) {
+                historyLink.style.display = document.getElementById("user").value.trim() === "admin" ? 
+                    "none" : "inline-block";
+            }
+
+            // Show admin link if admin
+            if (adminLink) {
+                adminLink.style.display = document.getElementById("user").value.trim() === "admin" ? 
+                    "inline-block" : "none";
+            }
+        } else {
+            authLink.innerHTML = translations[lang]["login"];
+            authLink.setAttribute("onclick", "showPage('login')");
+            
+            // Hide history and admin links when logged out
+            if (historyLink) historyLink.style.display = "none";
+            if (adminLink) adminLink.style.display = "none";
+        }
+    }
+}
+        
+
+        // อัปเดตสถานะปุ่มเมื่อโหลดหน้า
+        document.addEventListener("DOMContentLoaded", function () {
+            updateAuthButton();
+        });
+
+
+
+
+
+        function generateSeats(movieId) {
+            let seatContainer = document.getElementById(movieId + "-seats");
+            seatContainer.innerHTML = "";
+
+            let bookedSeats = JSON.parse(localStorage.getItem("bookedSeats")) || {};
+            let movieBookedSeats = bookedSeats[movieId] || [];
+
+            for (let row = 1; row <= 5; row++) {
+                let rowDiv = document.createElement("div");
+                rowDiv.classList.add("seats");
+                if (row === 4) {
+                    rowDiv.style.marginTop = "20px"; // Adjust space as needed
+                }
+
+                for (let col = 1; col <= 10; col++) {
+                    let seatButton = document.createElement("div");
+                    seatButton.classList.add("seat");
+                    let seatNumber = (row - 1) * 10 + col;
+                    seatButton.textContent = seatNumber;
+
+                    if (seatNumber >= 31 && seatNumber <= 50) {
+                        seatButton.style.backgroundColor = "purple";
+                        seatButton.style.color = "white";
+                    }
+
+                    if (movieBookedSeats.includes(seatNumber)) {
+                        seatButton.classList.add("booked");
+                        seatButton.style.backgroundColor = "grey";
+                    } else {
+                        seatButton.onclick = function () { bookSeat(this); };
+                    }
+
+                    rowDiv.appendChild(seatButton);
+                }
+                seatContainer.appendChild(rowDiv);
+            }
+        }
+
+        // อัปเดตสถานะปุ่มเมื่อโหลดหน้า
+        document.addEventListener("DOMContentLoaded", function () {
+            updateAuthButton();
+        });
+
+        let seatPrice = 150;
+        let premiumSeatPrice = 350; // ราคาที่นั่งพิเศษ (สีม่วง)
+        let selectedSeats = [];
+
+        function bookSeat(seat) {
+            if (document.getElementById("user").value.trim() === "admin") {
+                alert("⚠️ Admin ไม่สามารถจองตั๋วหนังได้!");
+                return;
+            }
+
+            let seatNumber = parseInt(seat.textContent);
+            let price = (seatNumber >= 31 && seatNumber <= 50) ? premiumSeatPrice : seatPrice;
+
+            if (!isLoggedIn) {
+                alert("❌ กรุณาเข้าสู่ระบบก่อนทำการจองที่นั่ง!");
+                return;
+            }
+
+            if (seat.classList.contains("booked")) {
+                alert("ที่นั่งนี้ถูกจองไปแล้ว!");
+                return;
+            }
+
+            if (seat.classList.contains("selected")) {
+                // ยกเลิกการเลือก
+                seat.classList.remove("selected");
+                seat.style.backgroundColor = (seatNumber >= 31 && seatNumber <= 50) ? "purple" : "";
+                seat.style.color = (seatNumber >= 31 && seatNumber <= 50) ? "white" : "black";
+                selectedSeats = selectedSeats.filter(s => s !== seat);
+            } else {
+                // เลือกที่นั่ง
+                seat.classList.add("selected");
+                seat.style.backgroundColor = "red";
+                seat.dataset.price = price;
+                selectedSeats.push(seat);
+            }
+
+            updateTotalPrice();
+        }
+
+        function updateTotalPrice() {
+            let totalPrice = 0;
+            let selectedSeatNumbers = [];
+
+            selectedSeats.forEach(seat => {
+                let seatNumber = parseInt(seat.textContent);
+                let price = (seatNumber >= 31 && seatNumber <= 50) ? premiumSeatPrice : seatPrice;
+                totalPrice += price;
+                selectedSeatNumbers.push(seatNumber);
+            });
+
+            document.getElementById("total-price").innerHTML =
+                `${translations[document.documentElement.lang]['total_price']}: ${totalPrice} ฿`;
+
+            document.getElementById("selected-seats").innerHTML =
+                `${translations[document.documentElement.lang]['selected_seats']}: ${selectedSeatNumbers.join(", ") || "-"}`;
+        }
+
+
+        function confirmBooking() {
+            if (document.getElementById("user").value.trim() === "admin") {
+                alert("⚠️ Admin ไม่สามารถจองตั๋วหนังได้!");
+                return;
+            }
+            if (!isLoggedIn) {
+                alert("⚠️ กรุณาเข้าสู่ระบบก่อนทำการจองตั๋ว!");
+                showPage('login');
+                return;
+            }
+
+            if (selectedSeats.length === 0) {
+                alert(translations[document.documentElement.lang]['select_seat']);
+                return;
+            }
+
+            // ประกาศตัวแปร username จาก input
+            const username = document.getElementById("user").value.trim();
+
+            // ดึงข้อมูลที่นั่งที่ถูกจองจาก Local Storage
+            let bookedSeats = JSON.parse(localStorage.getItem("bookedSeats")) || {};
+
+            // ดึงประวัติการจองของผู้ใช้จาก Local Storage
+            let history = isLoggedIn
+                ? JSON.parse(localStorage.getItem(`bookingHistory_${username}`)) || []
+                : [];
+
+            let totalPrice = 0;
+            let movieId = document.getElementById("movie").value;
+            let movieName = document.querySelector(`#movie option[value="${movieId}"]`).innerText;
+
+            // ตรวจสอบว่ามีข้อมูลหนังนี้ใน bookedSeats หรือไม่
+            if (!bookedSeats[movieId]) {
+                bookedSeats[movieId] = [];
+            }
+
+            let seatNumbers = [];
+            selectedSeats.forEach(seat => {
+                let seatNumber = parseInt(seat.textContent);
+                let price = (seatNumber >= 31 && seatNumber <= 50) ? premiumSeatPrice : seatPrice;
+                totalPrice += price;
+                seatNumbers.push(seatNumber);
+
+                // อัปเดตสถานะที่นั่ง
+                seat.classList.remove("selected");
+                seat.classList.add("booked");
+                seat.style.backgroundColor = "grey";
+
+                // เพิ่มที่นั่งที่จองลงใน bookedSeats
+                bookedSeats[movieId].push(seatNumber);
+            });
+
+            // กำหนดวันที่จอง
+            const bookingDate = new Date().toLocaleDateString(document.documentElement.lang, {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            // เพิ่มข้อมูลการจองลงในประวัติ
+            history.push({
+                movie: movieName,
+                seats: seatNumbers.join(", "),
+                total: totalPrice,
+                date: bookingDate
+            });
+
+            // บันทึกข้อมูลลง Local Storage
+            localStorage.setItem("bookedSeats", JSON.stringify(bookedSeats));
+
+            if (isLoggedIn) {
+                let userHistory = JSON.parse(localStorage.getItem(`bookingHistory_${username}`)) || [];
+                userHistory.push({
+                    movie: movieName,
+                    seats: seatNumbers.join(", "),
+                    total: totalPrice,
+                    date: bookingDate
+                });
+                localStorage.setItem(`bookingHistory_${username}`, JSON.stringify(userHistory));
+            }
+
+            // แสดงข้อความยืนยันการจอง
+            alert(`✅ ${translations[document.documentElement.lang]['booking_confirmed']} Total: ${totalPrice} ฿`);
+
+            // รีเซ็ตข้อมูล
+            selectedSeats = [];
+            updateTotalPrice();
+            updateBookingHistory(); // อัปเดตประวัติการจอง
+        }
+
+        function updateBookingHistory() {
+            const username = document.getElementById("user").value.trim();
+            let history = isLoggedIn
+                ? JSON.parse(localStorage.getItem(`bookingHistory_${username}`)) || []
+                : [];
+
+            let historyList = document.getElementById("history-list");
+            historyList.innerHTML = "";
+
+            if (history.length === 0) {
+                historyList.innerHTML = `<p data-translate="no_history">ยังไม่มีประวัติการจอง</p>`;
+                return;
+            }
+
+            history.forEach(entry => {
+                let entryDiv = document.createElement("div");
+                entryDiv.classList.add("history-entry");
+                entryDiv.innerHTML = `
+            <p>
+                🎬 ${entry.movie} | 
+                📅 ${entry.date} | 
+                🎟 ${translations[document.documentElement.lang]['selected_seats']}: ${entry.seats} | 
+                💰 ${translations[document.documentElement.lang]['total_price']}: ${entry.total} ฿
+            </p>
+        `;
+                historyList.appendChild(entryDiv);
+            });
+        }
+
+
+
+
+        function goToBooking(movieId, posterSrc) {
+
+            if (!isLoggedIn) {
+                alert("⚠️ กรุณาเข้าสู่ระบบก่อนทำการจองตั๋ว!");
+                showPage('login'); // ส่งผู้ใช้ไปที่หน้าล็อกอิน
+                return;
+            }
+
+
+            showPage('booking');  // Navigate to the booking page
+            document.getElementById("movie").value = movieId;  // Select the movie in the dropdown
+            selectMovie();  // Trigger the movie selection logic
+        }
+
+
+        function showAdminPanel() {
+            if (!isLoggedIn || document.getElementById("user").value.trim() !== "admin") {
+                alert("⚠️ คุณไม่มีสิทธิ์เข้าถึงหน้า Admin!");
+                showPage('home');
+                return;
+            }
+            showPage('admin');
+
+            // ซ่อนประวัติการจองเมื่อเข้าสู่หน้า Admin Panel
+            document.getElementById("all-booking-history").style.display = "none";
+        }
+
+        function loadAllBookingHistory() {
+            let allHistory = [];
+            for (let username in usersDatabase) {
+                if (username === "admin") continue; // ข้าม Admin
+                let userHistory = JSON.parse(localStorage.getItem(`bookingHistory_${username}`)) || [];
+                userHistory.forEach(entry => {
+                    entry.username = username; // เพิ่มชื่อผู้ใช้ในประวัติการจอง
+                    allHistory.push(entry);
+                });
+            }
+
+            let historyList = document.getElementById("all-booking-history");
+            historyList.innerHTML = "";
+
+            if (allHistory.length === 0) {
+                historyList.innerHTML = `<p>ไม่มีประวัติการจอง</p>`;
+            } else {
+                allHistory.forEach(entry => {
+                    let entryDiv = document.createElement("div");
+                    entryDiv.classList.add("history-entry");
+                    entryDiv.innerHTML = `
+                <p>
+                    👤 ผู้ใช้: ${entry.username} | 
+                    🎬 หนัง: ${entry.movie} | 
+                    📅 วันที่จอง: ${entry.date} | 
+                    🎟 ที่นั่ง: ${entry.seats} | 
+                    💰 ราคา: ${entry.total} ฿
+                </p>
+            `;
+                    historyList.appendChild(entryDiv);
+                });
+            }
+
+            // แสดงประวัติการจอง
+            historyList.style.display = "block";
+        }
+
+        function resetSystem() {
+            if (!isLoggedIn || document.getElementById("user").value.trim() !== "admin") {
+                alert("⚠️ คุณไม่มีสิทธิ์รีเซ็ตระบบ!");
+                return;
+            }
+
+            // ลบประวัติการจองทั้งหมด
+            for (let username in usersDatabase) {
+                if (username === "admin") continue; // ข้าม Admin
+                localStorage.removeItem(`bookingHistory_${username}`);
+            }
+
+            const defaultPrices = {
+        regular: 150,
+        premium: 350
+    };
+    
+    // Update global variables
+    seatPrice = defaultPrices.regular;
+    premiumSeatPrice = defaultPrices.premium;
+
+
+            // รีเซ็ตที่นั่งทั้งหมด
+            localStorage.removeItem("bookedSeats");
+            
+
+            alert("✅ รีเซ็ตระบบสำเร็จ!");
+
+            // ซ่อนประวัติการจองหลังจากรีเซ็ต
+            document.getElementById("all-booking-history").style.display = "none";
+            document.getElementById("all-booking-history").innerHTML = "";
+        }
+
+
+        function showPriceManagement() {
+    if (!isLoggedIn || document.getElementById("user").value.trim() !== "admin") {
+        alert("⚠️ คุณไม่มีสิทธิ์เข้าถึงการจัดการราคาตั๋ว!");
+        return;
+    }
+    
+    // Load current prices
+    const savedPrices = JSON.parse(localStorage.getItem("ticketPrices")) || {
+        regular: 150,
+        premium: 350
+    };
+    
+    document.getElementById("regular-price-input").value = savedPrices.regular;
+    document.getElementById("premium-price-input").value = savedPrices.premium;
+    
+    showPage('price-management');
+}
+
+function updatePrices() {
+    const newRegularPrice = parseInt(document.getElementById("regular-price-input").value);
+    const newPremiumPrice = parseInt(document.getElementById("premium-price-input").value);
+    
+    if (isNaN(newRegularPrice) || newRegularPrice < 0) {
+        alert("กรุณากรอกราคาปกติให้ถูกต้อง");
+        return;
+    }
+    
+    if (isNaN(newPremiumPrice) || newPremiumPrice < 0) {
+        alert("กรุณากรอกราคาพรีเมียมให้ถูกต้อง");
+        return;
+    }
+    
+    // Update global variables
+    seatPrice = newRegularPrice;
+    premiumSeatPrice = newPremiumPrice;
+    
+    // Save to localStorage
+    localStorage.setItem("ticketPrices", JSON.stringify({
+        regular: seatPrice,
+        premium: premiumSeatPrice
+    }));
+    
+    alert("✅ อัปเดตราคาตั๋วเรียบร้อยแล้ว!");
+    showPage('admin');
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    // Load saved prices or use defaults
+    const savedPrices = JSON.parse(localStorage.getItem("ticketPrices"));
+    if (savedPrices) {
+        seatPrice = savedPrices.regular;
+        premiumSeatPrice = savedPrices.premium;
+    }
+    
+    // Rest of your initialization code...
+});
+
+
+
+
+
+    </script>
+</head>
+
+<body>
+    <header>
+
+        <nav>
+            <div class="site-name">Absolute Cinema ✋😮🤚 </div>
+            <ul>
+                <li><a href="#" onclick="showPage('home')" data-translate="home">🏠หน้าหลัก</a></li>
+                <li><a href="#" onclick="showPage('movies')" data-translate="movies">🎞หนัง</a></li>
+                <li><a href="#" onclick="showPage('booking')" data-translate="booking">🎟จองตั๋วหนัง</a></li>
+                <li><a href="#" onclick="showPage('login')" data-translate="login">🔐เข้าสู่ระบบ</a></li>
+                <li><a href="#" onclick="showPage('history')" data-translate="history" style="display: none;">📋
+                        ประวัติการจอง</a></li>
+                <li><a href="#" onclick="showAdminPanel()" id="admin-link" style="display: none;">👑 Admin</a></li>
+            </ul>
+            <div class="language-switcher">
+                <button onclick="changeLanguage('th')">TH ไทย</button>
+                <button onclick="changeLanguage('en')">EN English</button>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section id="home" class="page">
+            <h2 data-translate="welcome">🎬 ยินดีต้อนรับสู่เว็บไซต์หนัง</h2>
+            <p data-translate="intro">แนะนำหนังใหม่และหนังยอดนิยมที่คุณไม่ควรพลาด!</p>
+
+            <div class="recommended-movies">
+                <img src="Pirates_of_the_Caribbean_movie.jpg" alt="Pirates of the Caribbean"
+                    onclick="goToBooking('pirates', 'Pirates_of_the_Caribbean_movie.jpg')">
+            </div>
+        </section>
+
+        <section id="movies" class="page" style="display:none;">
+            <h2 data-translate="movie_list">🎥 รายการหนัง</h2>
+            <div class="movie-list">
+                <div class="movie-item">
+                    <img src="Pirates_of_the_Caribbean_movie.jpg" alt="Pirates of the Caribbean"
+                        onclick="goToBooking('pirates', 'Pirates_of_the_Caribbean_movie.jpg')">
+                    <p>Pirates of the Caribbean</p>
+                </div>
+                <div class="movie-item">
+                    <img src="ironmanposter.jpg" alt="Iron Man" onclick="goToBooking('ironman', 'ironmanposter.jpg')">
+                    <p>Iron Man</p>
+                </div>
+                <div class="movie-item">
+                    <img src="starwar.jpg" alt="Star Wars" onclick="goToBooking('starwars', 'starwar.jpg')">
+                    <p>Star Wars</p>
+                </div>
+
+
+            </div>
+        </section>
+
+        <section id="login" class="page" style="display:none;">
+            <h2 data-translate="login_prompt">🔐 เข้าสู่ระบบ</h2>
+            <input type="text" id="user" placeholder="กรอกชื่อผู้ใช้">
+            <br>
+            <input type="password" id="password" placeholder="กรอกรหัสผ่าน">
+            <br>
+            <br>
+            <button onclick="login()" data-translate="login_button">Login</button>
+        </section>
+
+        <section id="booking" class="page" style="display:none;">
+            <h2 data-translate="booking">🎟 จองตั๋วหนัง</h2>
+            <div class="movie-container">
+                <label data-translate="select_movie">เลือกหนัง:</label>
+                <select id="movie" onchange="selectMovie()">
+                    <option value="none" data-translate="select_movie">เลือกหนัง</option>
+                    <option value="pirates" data-poster="Pirates_of_the_Caribbean_movie.jpg">Pirates of the Caribbean
+                    </option>
+                    <option value="ironman" data-poster="ironmanposter.jpg">Iron Man</option>
+                    <option value="starwars" data-poster="starwar.jpg">Star Wars</option>
+                </select>
+            </div>
+
+            <div id="movie-poster">
+                <img src="" alt="Selected Movie Poster" id="poster-img">
+            </div>
+
+            <div id="pirates" class="booking-container" style="display:none;">
+                <h3>Pirates of the Caribbean</h3>
+                <div class="screen">Screen</div>
+                <div id="pirates-seats"></div>
+            </div>
+
+            <div id="ironman" class="booking-container" style="display:none;">
+                <h3>Iron Man</h3>
+                <div class="screen">Screen</div>
+                <div id="ironman-seats"></div>
+            </div>
+
+            <div id="starwars" class="booking-container" style="display:none;">
+                <h3>Star Wars</h3>
+                <div class="screen">Screen</div>
+                <div id="starwars-seats"></div>
+            </div>
+
+            <button onclick="confirmBooking()" data-translate="book_now">จองตอนนี้</button>
+
+            <p id="total-price" data-translate="total_price">Total: 0 ฿</p>
+            <p id="selected-seats" data-translate="selected_seats">ที่นั่งที่เลือก: -</p>
+        </section>
+
+        <section id="history" class="page" style="display:none;">
+            <h2 data-translate="history">📋 ประวัติการจอง</h2>
+            <div id="history-list">
+                <p data-translate="no_history">ยังไม่มีประวัติการจอง</p>
+            </div>
+        </section>
+
+        <section id="admin" class="page" style="display:none;">
+            <h2>Admin Panel</h2>
+            <div id="admin-buttons">
+                <button onclick="loadAllBookingHistory()" data-translate="cusbookinghistory">ประวัติการจองลูกค้า</button>
+                <button onclick="showPage('price-management')" data-translate="pricemanage">จัดการราคาตั๋ว</button>
+                <button onclick="resetSystem()" data-translate="resetsystem">รีเช็ตระบบ</button>
+            </div>
+            <div id="all-booking-history" style="display: none;"></div>
+        </section>
+
+        <section id="price-management" class="page" style="display:none;">
+            <h2 data-translate="price_management">จัดการราคาตั๋ว</h2>
+            <div class="price-controls">
+                <div>
+                    <label data-translate="regular_price">ราคาที่นั่งปกติ:</label>
+                    <input type="number" id="regular-price-input" min="0">
+                </div>
+                <div>
+                    <label data-translate="premium_price">ราคาที่นั่งพรีเมียม:</label>
+                    <input type="number" id="premium-price-input" min="0">
+                </div>
+                <button onclick="updatePrices()" data-translate="update_prices">อัปเดตราคา</button>
+                <button onclick="showPage('admin')" data-translate="back_to_admin">กลับไปหน้า Admin</button>
+            </div>
+        </section>
+
+    </main>
+
+    <footer>
+        <p>&copy; 2025 <span data-translate="update">อัปเดตล่าสุด</span></p>
+        <span data-translate="contact_us">📞 ติดต่อเรา</span>
+        <span data-translate="phone">☎️ โทร: 012-345-6789</span>
+    </footer>
+</body>
+
+</html>
